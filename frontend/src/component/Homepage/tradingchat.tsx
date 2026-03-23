@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/component/ui/button";
+import { Skeleton } from "@/component/ui/skeleton";
 
 type Candle = {
   open: number;

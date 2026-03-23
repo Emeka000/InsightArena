@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/component/ui/card";
 import { Shield, Activity } from "lucide-react";
 import { motion } from "framer-motion";
 

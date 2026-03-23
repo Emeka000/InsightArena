@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/component/ui/card"
 import { Star, Shield, Trophy, Award, Users, BookOpen, Gift } from "lucide-react"
 
 

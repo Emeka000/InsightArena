@@ -1,5 +1,5 @@
 import React from 'react'
-import { Button } from "@/components/ui/button"
+import { Button } from "@/component/ui/button"
 import { Star, Shield } from "lucide-react"
 
 const Why_starknet = () => {

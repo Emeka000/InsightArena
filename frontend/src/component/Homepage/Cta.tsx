@@ -1,5 +1,5 @@
 import React from 'react'
-import { Button } from "@/components/ui/button"
+import { Button } from "@/component/ui/button"
 import { Star, Shield, Trophy, Award, Gift } from "lucide-react"
 
 const Cta = () => {
