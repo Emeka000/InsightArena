@@ -1,0 +1,41 @@
+name: Contract CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: Build, Lint, and Test Contract
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: contract
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        run: |
+          rustup update stable
+          rustup default stable
+          rustup target add wasm32-unknown-unknown
+
+      - name: Install Soroban CLI
+        run: cargo install --locked soroban-cli
+
+      - name: Format Check
+        run: cargo fmt --all -- --check
+
+      - name: Linter (Clippy)
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Unit Tests
+        run: cargo test
+
+      - name: WASM Build
+        run: cargo build --target wasm32-unknown-unknown --release
