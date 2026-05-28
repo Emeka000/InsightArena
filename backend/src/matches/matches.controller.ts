@@ -16,7 +16,6 @@ import { Public } from '../common/decorators/public.decorator';
 import { MatchesService } from './matches.service';
 import { MatchDetailDto } from './dto/match-detail.dto';
 import { MatchPredictionsResponseDto } from './dto/match-predictions.dto';
-import { ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiTags('Matches')
 @Controller('matches')

@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Match } from './entities/match.entity';
-import { MatchPrediction } from './entities/match-prediction.entity';
+import { MatchPrediction, PredictedOutcome } from './entities/match-prediction.entity';
 import { MatchDetailDto } from './dto/match-detail.dto';
 import { MatchPredictionsResponseDto } from './dto/match-predictions.dto';
 
@@ -140,7 +140,7 @@ export class MatchesService {
 
     for (const outcome of outcomes) {
       const count = await this.matchPredictionRepository.count({
-        where: { match: { id: matchId }, predicted_outcome: outcome as any },
+        where: { match: { id: matchId }, predicted_outcome: outcome as PredictedOutcome },
       });
       distribution.push({
         outcome,

@@ -133,11 +133,6 @@ export class AdminService {
     startOfWeek.setDate(now.getDate() - now.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
 
-    let startDate: Date | undefined;
-    let endDate: Date | undefined;
-    if (query.start_date) startDate = new Date(query.start_date);
-    if (query.end_date) endDate = new Date(query.end_date);
-
     const totalEvents = await this.creatorEventRepository.count();
 
     const totalFeeResult = await this.creatorEventRepository

@@ -6,7 +6,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { LessThan, MoreThan, Repository } from 'typeorm';
+import { LessThan, Repository } from 'typeorm';
 import {
   ContractEvent,
   ContractEventStatus,
@@ -533,16 +533,16 @@ export class IndexerService implements OnModuleInit {
 
     const creatorEvent = this.creatorEventRepository.create({
       on_chain_event_id: onChainEventId,
-      creator_address: String(data.creator ?? ''),
-      title: String(data.title ?? `Event ${onChainEventId}`),
-      description: String(data.description ?? ''),
-      creation_fee_paid: String(data.creation_fee_paid ?? '0'),
+      creator_address: this.readStr(data, 'creator'),
+      title: this.readStr(data, 'title') || `Event ${onChainEventId}`,
+      description: this.readStr(data, 'description'),
+      creation_fee_paid: this.readStr(data, 'creation_fee_paid') || '0',
       on_chain_created_at: data.created_at
         ? new Date(Number(data.created_at) * 1000)
         : new Date(),
       is_active: true,
       is_cancelled: false,
-      invite_code: data.invite_code ? String(data.invite_code) : null,
+      invite_code: this.readStr(data, 'invite_code') || null,
       max_participants: Number(data.max_participants ?? 0),
       participant_count: 0,
       match_count: 0,
@@ -578,8 +578,8 @@ export class IndexerService implements OnModuleInit {
     const match = this.matchRepository.create({
       on_chain_match_id: onChainMatchId,
       event,
-      team_a: String(data.team_a ?? 'Team A'),
-      team_b: String(data.team_b ?? 'Team B'),
+      team_a: this.readStr(data, 'team_a') || 'Team A',
+      team_b: this.readStr(data, 'team_b') || 'Team B',
       match_time: data.match_time
         ? new Date(Number(data.match_time) * 1000)
         : new Date(),
@@ -602,7 +602,7 @@ export class IndexerService implements OnModuleInit {
     data: Record<string, unknown>,
   ): Promise<void> {
     const onChainEventId = Number(data.event_id);
-    const userAddress = String(data.user_address ?? '');
+    const userAddress = this.readStr(data, 'user_address');
     if (!onChainEventId || !userAddress) {
       this.logger.warn('UserJoinedEvent skipped: missing data');
       return;
@@ -626,8 +626,8 @@ export class IndexerService implements OnModuleInit {
     data: Record<string, unknown>,
   ): Promise<void> {
     const matchId = Number(data.match_id);
-    const predictorAddress = String(data.predictor ?? '');
-    const predictedOutcome = String(data.predicted_outcome ?? '');
+    const predictorAddress = this.readStr(data, 'predictor');
+    const predictedOutcome = this.readStr(data, 'predicted_outcome');
 
     if (!matchId || !predictorAddress || !predictedOutcome) {
       this.logger.warn('PredictionSubmitted skipped: missing data');
@@ -726,7 +726,7 @@ export class IndexerService implements OnModuleInit {
 
     match.result_submitted = true;
     match.winning_team = winningTeam;
-    match.submitted_by = String(data.submitted_by ?? '');
+    match.submitted_by = this.readStr(data, 'submitted_by');
     match.submitted_at = data.submitted_at
       ? new Date(Number(data.submitted_at) * 1000)
       : new Date();
@@ -749,7 +749,7 @@ export class IndexerService implements OnModuleInit {
 
     for (const prediction of predictions) {
       prediction.is_correct =
-        prediction.predicted_outcome.toString() === winningTeam;
+        String(prediction.predicted_outcome) === String(winningTeam);
     }
 
     if (predictions.length > 0) {
@@ -757,11 +757,11 @@ export class IndexerService implements OnModuleInit {
     }
   }
 
-  private async handleWinnersVerified(
+  private handleWinnersVerified(
     data: Record<string, unknown>,
-  ): Promise<void> {
+  ): void {
     this.logger.log(
-      `WinnersVerified event received for event_id=${data.event_id}`,
+      `WinnersVerified event received for event_id=${String(data.event_id)}`,
     );
   }
 
@@ -793,9 +793,9 @@ export class IndexerService implements OnModuleInit {
   private async handleFeeUpdated(
     data: Record<string, unknown>,
   ): Promise<void> {
-    const oldFee = String(data.old_fee ?? '0');
-    const newFee = String(data.new_fee ?? '0');
-    const updatedBy = String(data.updated_by ?? '');
+    const oldFee = this.readStr(data, 'old_fee') || '0';
+    const newFee = this.readStr(data, 'new_fee') || '0';
+    const updatedBy = this.readStr(data, 'updated_by');
 
     const feeHistory = this.feeHistoryRepository.create({
       old_fee_stroops: oldFee,
@@ -814,7 +814,7 @@ export class IndexerService implements OnModuleInit {
   private async handleAddressVerified(
     data: Record<string, unknown>,
   ): Promise<void> {
-    const address = String(data.address ?? '');
+    const address = this.readStr(data, 'address');
     if (!address) return;
 
     const user = await this.userRepository.findOne({
@@ -830,7 +830,7 @@ export class IndexerService implements OnModuleInit {
   private async handleAddressUnverified(
     data: Record<string, unknown>,
   ): Promise<void> {
-    const address = String(data.address ?? '');
+    const address = this.readStr(data, 'address');
     if (!address) return;
 
     const user = await this.userRepository.findOne({
@@ -983,7 +983,10 @@ export class IndexerService implements OnModuleInit {
 
   private readStr(data: Record<string, unknown>, key: string): string {
     const val = data[key];
-    return val != null ? String(val) : '';
+    if (typeof val === 'string') return val;
+    if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+    if (val === null || val === undefined) return '';
+    return String(val);
   }
 
   private readNum(
