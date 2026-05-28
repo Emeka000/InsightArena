@@ -30,8 +30,6 @@ impl CreatorEventManagerContract {
     /// storage, resets all counters to zero, and emits an `initialized` event.
     ///
     /// # Panics
-    /// Panics with a descriptive message on any validation failure so that
-    /// Soroban surfaces a clear error to the caller:
     /// * `"already_initialized"` — called more than once.
     /// * `"invalid_address"` — one of the addresses equals the contract itself.
     /// * `"invalid_creation_fee"` — `initial_creation_fee` ≤ 0.
@@ -61,6 +59,71 @@ impl CreatorEventManagerContract {
             Err(AdminError::InvalidCreationFee) => {
                 panic!("invalid_creation_fee")
             }
+            Err(_) => panic!("unexpected_error"),
+        }
+    }
+
+    /// Update the treasury address where collected fees are sent.
+    ///
+    /// Only the admin may call this. `new_treasury` must not be the contract itself.
+    ///
+    /// # Panics
+    /// * `"unauthorized"` — caller is not the admin.
+    /// * `"invalid_address"` — `new_treasury` equals the contract address.
+    pub fn set_treasury(env: Env, caller: Address, new_treasury: Address) {
+        match admin::set_treasury(&env, caller, new_treasury) {
+            Ok(()) => {}
+            Err(AdminError::Unauthorized) => panic!("unauthorized"),
+            Err(AdminError::InvalidAddress) => panic!("invalid_address"),
+            Err(_) => panic!("unexpected_error"),
+        }
+    }
+
+    /// Update the AI oracle agent address authorised to submit match results.
+    ///
+    /// Only the admin may call this. `new_agent` must not be the contract itself.
+    ///
+    /// # Panics
+    /// * `"unauthorized"` — caller is not the admin.
+    /// * `"invalid_address"` — `new_agent` equals the contract address.
+    pub fn set_ai_agent(env: Env, caller: Address, new_agent: Address) {
+        match admin::set_ai_agent(&env, caller, new_agent) {
+            Ok(()) => {}
+            Err(AdminError::Unauthorized) => panic!("unauthorized"),
+            Err(AdminError::InvalidAddress) => panic!("invalid_address"),
+            Err(_) => panic!("unexpected_error"),
+        }
+    }
+
+    /// Halt contract operations in an emergency.
+    ///
+    /// Only the admin may call this. Panics if the contract is already paused.
+    ///
+    /// # Panics
+    /// * `"unauthorized"` — caller is not the admin.
+    /// * `"already_paused"` — contract is already paused.
+    pub fn pause(env: Env, caller: Address) {
+        match admin::pause(&env, caller) {
+            Ok(()) => {}
+            Err(AdminError::Unauthorized) => panic!("unauthorized"),
+            Err(AdminError::AlreadyPaused) => panic!("already_paused"),
+            Err(_) => panic!("unexpected_error"),
+        }
+    }
+
+    /// Resume contract operations after a pause.
+    ///
+    /// Only the admin may call this. Panics if the contract is not currently paused.
+    ///
+    /// # Panics
+    /// * `"unauthorized"` — caller is not the admin.
+    /// * `"not_paused"` — contract is not currently paused.
+    pub fn unpause(env: Env, caller: Address) {
+        match admin::unpause(&env, caller) {
+            Ok(()) => {}
+            Err(AdminError::Unauthorized) => panic!("unauthorized"),
+            Err(AdminError::NotPaused) => panic!("not_paused"),
+            Err(_) => panic!("unexpected_error"),
         }
     }
 
@@ -77,5 +140,15 @@ impl CreatorEventManagerContract {
     /// Returns `true` if the contract is currently paused.
     pub fn is_paused(env: Env) -> bool {
         admin::is_paused(&env)
+    }
+
+    /// Returns the current treasury address, or panics if not initialised.
+    pub fn get_treasury(env: Env) -> Address {
+        admin::get_treasury(&env).unwrap_or_else(|| panic!("not_initialized"))
+    }
+
+    /// Returns the current AI agent address, or panics if not initialised.
+    pub fn get_ai_agent(env: Env) -> Address {
+        admin::get_ai_agent(&env).unwrap_or_else(|| panic!("not_initialized"))
     }
 }
