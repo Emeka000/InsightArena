@@ -1,5 +1,7 @@
 use creator_event_manager::CreatorEventManagerContractClient;
+use soroban_sdk::testutils::Address as _;
 use soroban_sdk::testutils::Ledger as _;
+use soroban_sdk::token::Client as TokenClient;
 use soroban_sdk::token::StellarAssetClient;
 use soroban_sdk::{Address, Env, String, Symbol};
 
@@ -73,7 +75,8 @@ fn test_treasury_balance_and_withdraw_success() {
     client.withdraw_fees(&admin, &recipient, &FEE);
 
     // Recipient balance increased
-    let rec_bal = StellarAssetClient::new(&env, &xlm_token).balance(&recipient);
+    let token = TokenClient::new(&env, &xlm_token);
+    let rec_bal = token.balance(&recipient);
     assert_eq!(rec_bal, FEE);
 
     // Treasury balance now zero
