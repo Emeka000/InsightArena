@@ -18,6 +18,7 @@ import { CreatorEvent } from '../matches/entities/creator-event.entity';
 import { Match } from '../matches/entities/match.entity';
 import { MatchPrediction } from '../matches/entities/match-prediction.entity';
 import { User } from '../users/entities/user.entity';
+import { NotificationGeneratorService } from '../notifications/notification-generator.service';
 
 describe('IndexerService', () => {
   let service: IndexerService;
@@ -139,6 +140,18 @@ describe('IndexerService', () => {
           useValue: matchPredictionRepository,
         },
         { provide: getRepositoryToken(User), useValue: userRepository },
+        {
+          provide: NotificationGeneratorService,
+          useValue: {
+            handleEventCreated: jest.fn(),
+            handleMatchAdded: jest.fn(),
+            handleUserJoinedEvent: jest.fn(),
+            handlePredictionSubmitted: jest.fn(),
+            handleMatchResultSubmitted: jest.fn(),
+            handleWinnersVerified: jest.fn(),
+            handleEventCancelled: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
