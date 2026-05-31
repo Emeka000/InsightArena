@@ -19,6 +19,7 @@ import { Match } from '../matches/entities/match.entity';
 import { MatchPrediction } from '../matches/entities/match-prediction.entity';
 import { User } from '../users/entities/user.entity';
 import { NotificationGeneratorService } from '../notifications/notification-generator.service';
+import { BroadcasterService } from '../websocket/broadcaster.service';
 
 describe('IndexerService', () => {
   let service: IndexerService;
@@ -150,6 +151,18 @@ describe('IndexerService', () => {
             handleMatchResultSubmitted: jest.fn(),
             handleWinnersVerified: jest.fn(),
             handleEventCancelled: jest.fn(),
+          },
+        },
+        {
+          provide: BroadcasterService,
+          useValue: {
+            broadcastEventCreated: jest.fn(),
+            broadcastMatchAdded: jest.fn(),
+            broadcastUserJoined: jest.fn(),
+            broadcastPredictionSubmitted: jest.fn(),
+            broadcastMatchResolved: jest.fn(),
+            broadcastWinnersVerified: jest.fn(),
+            broadcastEventCancelled: jest.fn(),
           },
         },
       ],
