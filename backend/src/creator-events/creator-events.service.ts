@@ -12,6 +12,7 @@ import { CreatorEvent } from '../matches/entities/creator-event.entity';
 import { Match } from '../matches/entities/match.entity';
 import { MatchPrediction } from '../matches/entities/match-prediction.entity';
 import { User } from '../users/entities/user.entity';
+import { LeaderboardEntry } from '../leaderboard/entities/leaderboard-entry.entity';
 import {
   EventByCodeResponseDto,
   MatchPreviewDto,
@@ -88,6 +89,8 @@ export class CreatorEventsService {
     private readonly matchPredictionRepository: Repository<MatchPrediction>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(LeaderboardEntry)
+    private readonly leaderboardEntryRepository: Repository<LeaderboardEntry>,
   ) {}
 
   async searchEvents(

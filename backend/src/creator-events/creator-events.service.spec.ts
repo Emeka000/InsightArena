@@ -7,6 +7,7 @@ import { CreatorEventLeaderboardEntry } from '../matches/entities/creator-event-
 import { Match } from '../matches/entities/match.entity';
 import { MatchPrediction } from '../matches/entities/match-prediction.entity';
 import { User } from '../users/entities/user.entity';
+import { LeaderboardEntry } from '../leaderboard/entities/leaderboard-entry.entity';
 import { CreatorEventsService } from './creator-events.service';
 import { CreatorEventSearchStatus } from './dto/search-events-query.dto';
 
@@ -107,6 +108,10 @@ describe('CreatorEventsService searchEvents', () => {
         },
         {
           provide: getRepositoryToken(User),
+          useValue: {},
+        },
+        {
+          provide: getRepositoryToken(LeaderboardEntry),
           useValue: {},
         },
       ],
