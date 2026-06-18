@@ -15,6 +15,8 @@ import {
 import { FeeHistory } from './entities/fee-history.entity';
 import { IndexerCheckpoint } from './entities/indexer-checkpoint.entity';
 import { CreatorEvent } from '../matches/entities/creator-event.entity';
+import { CreatorEventLeaderboardEntry } from '../matches/entities/creator-event-leaderboard-entry.entity';
+import { CreatorEventPayout } from '../matches/entities/creator-event-payout.entity';
 import { Match } from '../matches/entities/match.entity';
 import { MatchPrediction } from '../matches/entities/match-prediction.entity';
 import { User } from '../users/entities/user.entity';
@@ -142,6 +144,22 @@ describe('IndexerService', () => {
         },
         { provide: getRepositoryToken(User), useValue: userRepository },
         {
+          provide: getRepositoryToken(CreatorEventLeaderboardEntry),
+          useValue: {
+            findOne: jest.fn(),
+            create: jest.fn(),
+            save: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(CreatorEventPayout),
+          useValue: {
+            count: jest.fn(),
+            create: jest.fn(),
+            save: jest.fn(),
+          },
+        },
+        {
           provide: NotificationGeneratorService,
           useValue: {
             handleEventCreated: jest.fn(),
@@ -163,6 +181,7 @@ describe('IndexerService', () => {
             broadcastMatchResolved: jest.fn(),
             broadcastWinnersVerified: jest.fn(),
             broadcastEventCancelled: jest.fn(),
+            broadcastEventFinalized: jest.fn(),
           },
         },
       ],

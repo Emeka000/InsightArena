@@ -4,6 +4,7 @@ import { Repository, SelectQueryBuilder } from 'typeorm';
 import { ContractService } from '../contract/contract.service';
 import { CreatorEvent } from '../matches/entities/creator-event.entity';
 import { CreatorEventLeaderboardEntry } from '../matches/entities/creator-event-leaderboard-entry.entity';
+import { CreatorEventPayout } from '../matches/entities/creator-event-payout.entity';
 import { CreatorEventsService } from './creator-events.service';
 import { CreatorEventSearchStatus } from './dto/search-events-query.dto';
 
@@ -92,6 +93,10 @@ describe('CreatorEventsService searchEvents', () => {
         },
         {
           provide: getRepositoryToken(CreatorEventLeaderboardEntry),
+          useValue: {},
+        },
+        {
+          provide: getRepositoryToken(CreatorEventPayout),
           useValue: {},
         },
       ],
