@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
@@ -40,9 +35,7 @@ export class WebhooksService {
     });
 
     const saved = await this.endpointRepository.save(endpoint);
-    this.logger.log(
-      `Created webhook endpoint for user ${user.id}: ${dto.url}`,
-    );
+    this.logger.log(`Created webhook endpoint for user ${user.id}: ${dto.url}`);
 
     return saved;
   }
