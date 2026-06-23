@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddDataExportJobAndUserSoftDelete1776300000000
-  implements MigrationInterface
-{
+export class AddDataExportJobAndUserSoftDelete1776300000000 implements MigrationInterface {
   name = 'AddDataExportJobAndUserSoftDelete1776300000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -46,8 +44,6 @@ export class AddDataExportJobAndUserSoftDelete1776300000000
       `DROP INDEX IF EXISTS "public"."IDX_data_export_jobs_user_id"`,
     );
     await queryRunner.query(`DROP TABLE "data_export_jobs"`);
-    await queryRunner.query(
-      `ALTER TABLE "users" DROP COLUMN "deleted_at"`,
-    );
+    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "deleted_at"`);
   }
 }

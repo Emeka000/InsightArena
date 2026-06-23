@@ -8,12 +8,15 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { RateLimitService } from './rate-limit.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { ApiKey } from './entities/api-key.entity';
+import { ApiKeyService } from './api-key.service';
+import { ApiKeyController } from './api-key.controller';
 
 @Module({
   imports: [
     PassportModule,
     ConfigModule,
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, ApiKey]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -25,8 +28,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       }),
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RateLimitService],
-  exports: [AuthService, JwtModule],
+  controllers: [AuthController, ApiKeyController],
+  providers: [AuthService, ApiKeyService, JwtStrategy, RateLimitService],
+  exports: [AuthService, ApiKeyService, JwtModule],
 })
 export class AuthModule {}

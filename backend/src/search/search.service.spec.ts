@@ -4,7 +4,10 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { SelectQueryBuilder } from 'typeorm';
 import { Market } from '../markets/entities/market.entity';
 import { User } from '../users/entities/user.entity';
-import { Competition, CompetitionVisibility } from '../competitions/entities/competition.entity';
+import {
+  Competition,
+  CompetitionVisibility,
+} from '../competitions/entities/competition.entity';
 import { SearchService } from './search.service';
 import { GlobalSearchDto, SearchType } from './dto/global-search.dto';
 
@@ -104,7 +107,12 @@ describe('SearchService', () => {
 
   describe('search()', () => {
     it('returns all three entity types for SearchType.All', async () => {
-      const dto: GlobalSearchDto = { query: 'bitcoin', type: SearchType.All, page: 1, limit: 20 };
+      const dto: GlobalSearchDto = {
+        query: 'bitcoin',
+        type: SearchType.All,
+        page: 1,
+        limit: 20,
+      };
       const result = await service.search(dto);
 
       expect(result.markets).toEqual([mockMarket]);
@@ -116,7 +124,12 @@ describe('SearchService', () => {
     });
 
     it('returns only markets when type is Markets', async () => {
-      const dto: GlobalSearchDto = { query: 'bitcoin', type: SearchType.Markets, page: 1, limit: 20 };
+      const dto: GlobalSearchDto = {
+        query: 'bitcoin',
+        type: SearchType.Markets,
+        page: 1,
+        limit: 20,
+      };
       const result = await service.search(dto);
 
       expect(result.markets).toEqual([mockMarket]);
@@ -125,14 +138,24 @@ describe('SearchService', () => {
     });
 
     it('caps limit at 50', async () => {
-      const dto: GlobalSearchDto = { query: 'test', type: SearchType.Markets, page: 1, limit: 999 };
+      const dto: GlobalSearchDto = {
+        query: 'test',
+        type: SearchType.Markets,
+        page: 1,
+        limit: 999,
+      };
       await service.search(dto);
 
       expect(marketQb.take).toHaveBeenCalledWith(50);
     });
 
     it('computes correct skip for page 3 limit 10', async () => {
-      const dto: GlobalSearchDto = { query: 'test', type: SearchType.Markets, page: 3, limit: 10 };
+      const dto: GlobalSearchDto = {
+        query: 'test',
+        type: SearchType.Markets,
+        page: 3,
+        limit: 10,
+      };
       await service.search(dto);
 
       expect(marketQb.skip).toHaveBeenCalledWith(20);
@@ -142,7 +165,12 @@ describe('SearchService', () => {
 
   describe('searchMarkets FTS', () => {
     it('filters by is_public = true', async () => {
-      await service.search({ query: 'bitcoin', type: SearchType.Markets, page: 1, limit: 20 });
+      await service.search({
+        query: 'bitcoin',
+        type: SearchType.Markets,
+        page: 1,
+        limit: 20,
+      });
 
       expect(marketQb.where).toHaveBeenCalledWith(
         'market.is_public = :isPublic',
@@ -151,7 +179,12 @@ describe('SearchService', () => {
     });
 
     it('matches via search_vector @@ plainto_tsquery', async () => {
-      await service.search({ query: 'bitcoin', type: SearchType.Markets, page: 1, limit: 20 });
+      await service.search({
+        query: 'bitcoin',
+        type: SearchType.Markets,
+        page: 1,
+        limit: 20,
+      });
 
       expect(marketQb.andWhere).toHaveBeenCalledWith(
         expect.stringContaining('search_vector @@'),
@@ -160,7 +193,12 @@ describe('SearchService', () => {
     });
 
     it('orders by ts_rank DESC', async () => {
-      await service.search({ query: 'bitcoin', type: SearchType.Markets, page: 1, limit: 20 });
+      await service.search({
+        query: 'bitcoin',
+        type: SearchType.Markets,
+        page: 1,
+        limit: 20,
+      });
 
       expect(marketQb.orderBy).toHaveBeenCalledWith(
         expect.stringContaining('ts_rank'),
@@ -171,16 +209,25 @@ describe('SearchService', () => {
 
   describe('searchUsers FTS', () => {
     it('filters out banned users', async () => {
-      await service.search({ query: 'alice', type: SearchType.Users, page: 1, limit: 20 });
+      await service.search({
+        query: 'alice',
+        type: SearchType.Users,
+        page: 1,
+        limit: 20,
+      });
 
-      expect(userQb.where).toHaveBeenCalledWith(
-        'user.is_banned = :banned',
-        { banned: false },
-      );
+      expect(userQb.where).toHaveBeenCalledWith('user.is_banned = :banned', {
+        banned: false,
+      });
     });
 
     it('matches via search_vector @@ plainto_tsquery', async () => {
-      await service.search({ query: 'alice', type: SearchType.Users, page: 1, limit: 20 });
+      await service.search({
+        query: 'alice',
+        type: SearchType.Users,
+        page: 1,
+        limit: 20,
+      });
 
       expect(userQb.andWhere).toHaveBeenCalledWith(
         expect.stringContaining('search_vector @@'),
@@ -189,7 +236,12 @@ describe('SearchService', () => {
     });
 
     it('orders by ts_rank DESC', async () => {
-      await service.search({ query: 'alice', type: SearchType.Users, page: 1, limit: 20 });
+      await service.search({
+        query: 'alice',
+        type: SearchType.Users,
+        page: 1,
+        limit: 20,
+      });
 
       expect(userQb.orderBy).toHaveBeenCalledWith(
         expect.stringContaining('ts_rank'),
@@ -200,7 +252,12 @@ describe('SearchService', () => {
 
   describe('searchCompetitions FTS', () => {
     it('filters by visibility = public', async () => {
-      await service.search({ query: 'league', type: SearchType.Competitions, page: 1, limit: 20 });
+      await service.search({
+        query: 'league',
+        type: SearchType.Competitions,
+        page: 1,
+        limit: 20,
+      });
 
       expect(competitionQb.where).toHaveBeenCalledWith(
         'competition.visibility = :visibility',
@@ -209,7 +266,12 @@ describe('SearchService', () => {
     });
 
     it('matches via search_vector @@ plainto_tsquery', async () => {
-      await service.search({ query: 'league', type: SearchType.Competitions, page: 1, limit: 20 });
+      await service.search({
+        query: 'league',
+        type: SearchType.Competitions,
+        page: 1,
+        limit: 20,
+      });
 
       expect(competitionQb.andWhere).toHaveBeenCalledWith(
         expect.stringContaining('search_vector @@'),
@@ -218,7 +280,12 @@ describe('SearchService', () => {
     });
 
     it('orders by ts_rank DESC', async () => {
-      await service.search({ query: 'league', type: SearchType.Competitions, page: 1, limit: 20 });
+      await service.search({
+        query: 'league',
+        type: SearchType.Competitions,
+        page: 1,
+        limit: 20,
+      });
 
       expect(competitionQb.orderBy).toHaveBeenCalledWith(
         expect.stringContaining('ts_rank'),

@@ -22,7 +22,9 @@ export class AccountService {
     private readonly configService: ConfigService,
   ) {}
 
-  async requestExport(userId: string): Promise<{ jobId: string; status: string }> {
+  async requestExport(
+    userId: string,
+  ): Promise<{ jobId: string; status: string }> {
     const existing = await this.jobRepo.findOne({
       where: [
         { user_id: userId, status: 'pending' },
@@ -70,7 +72,10 @@ export class AccountService {
 
   @Cron(CronExpression.EVERY_MINUTE)
   async processExports(): Promise<void> {
-    const jobs = await this.jobRepo.find({ where: { status: 'pending' }, take: 5 });
+    const jobs = await this.jobRepo.find({
+      where: { status: 'pending' },
+      take: 5,
+    });
     for (const job of jobs) {
       await this.runExport(job).catch(() => {});
     }
@@ -96,7 +101,9 @@ export class AccountService {
     }
   }
 
-  private async gatherUserData(userId: string): Promise<Record<string, unknown>> {
+  private async gatherUserData(
+    userId: string,
+  ): Promise<Record<string, unknown>> {
     const [profile] = await this.dataSource.query(
       `SELECT id, stellar_address, username, avatar_url, email, role,
               total_predictions, correct_predictions, reputation_score,
@@ -116,22 +123,19 @@ export class AccountService {
       leaderboard,
       notifications,
     ] = await Promise.all([
-      this.dataSource.query(
-        `SELECT * FROM predictions WHERE "userId" = $1`,
-        [userId],
-      ),
-      this.dataSource.query(
-        `SELECT * FROM markets WHERE "creatorId" = $1`,
-        [userId],
-      ),
+      this.dataSource.query(`SELECT * FROM predictions WHERE "userId" = $1`, [
+        userId,
+      ]),
+      this.dataSource.query(`SELECT * FROM markets WHERE "creatorId" = $1`, [
+        userId,
+      ]),
       this.dataSource.query(
         `SELECT * FROM user_achievements WHERE "userId" = $1`,
         [userId],
       ),
-      this.dataSource.query(
-        `SELECT * FROM user_bookmarks WHERE user_id = $1`,
-        [userId],
-      ),
+      this.dataSource.query(`SELECT * FROM user_bookmarks WHERE user_id = $1`, [
+        userId,
+      ]),
       this.dataSource.query(
         `SELECT * FROM user_follows WHERE follower_id = $1 OR following_id = $1`,
         [userId],
@@ -185,20 +189,18 @@ export class AccountService {
       }
 
       // Delete address-indexed personal data
-      await manager.query(
-        `DELETE FROM notifications WHERE user_address = $1`,
-        [user.stellar_address],
-      );
+      await manager.query(`DELETE FROM notifications WHERE user_address = $1`, [
+        user.stellar_address,
+      ]);
       await manager.query(
         `DELETE FROM notification_digest_state WHERE user_id = $1`,
         [userId],
       );
 
       // Remove pending export records
-      await manager.query(
-        `DELETE FROM data_export_jobs WHERE user_id = $1`,
-        [userId],
-      );
+      await manager.query(`DELETE FROM data_export_jobs WHERE user_id = $1`, [
+        userId,
+      ]);
 
       // Anonymize PII and soft-delete (sets deleted_at so JWT validate returns null)
       await manager.query(

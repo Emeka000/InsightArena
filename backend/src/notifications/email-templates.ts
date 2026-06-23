@@ -97,7 +97,8 @@ export function renderEmailTemplate(
         .map((item) => `• ${item.title}: ${item.message}`)
         .join('\n');
       return {
-        subject: `Your ${freq} InsightArena digest — ${context.digestPeriod ?? ''}`.trimEnd(),
+        subject:
+          `Your ${freq} InsightArena digest — ${context.digestPeriod ?? ''}`.trimEnd(),
         html: wrapHtml(
           `${freq} Activity Digest`,
           `<p>Here's a summary of your recent activity on InsightArena:</p>

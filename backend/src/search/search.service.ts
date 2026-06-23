@@ -66,10 +66,9 @@ export class SearchService {
         'market.created_at',
       ])
       .where('market.is_public = :isPublic', { isPublic: true })
-      .andWhere(
-        `market.search_vector @@ plainto_tsquery('english', :query)`,
-        { query },
-      )
+      .andWhere(`market.search_vector @@ plainto_tsquery('english', :query)`, {
+        query,
+      })
       .orderBy(
         `ts_rank(market.search_vector, plainto_tsquery('english', :query))`,
         'DESC',
@@ -95,10 +94,9 @@ export class SearchService {
         'user.total_predictions',
       ])
       .where('user.is_banned = :banned', { banned: false })
-      .andWhere(
-        `user.search_vector @@ plainto_tsquery('simple', :query)`,
-        { query },
-      )
+      .andWhere(`user.search_vector @@ plainto_tsquery('simple', :query)`, {
+        query,
+      })
       .orderBy(
         `ts_rank(user.search_vector, plainto_tsquery('simple', :query))`,
         'DESC',

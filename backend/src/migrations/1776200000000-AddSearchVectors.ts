@@ -50,14 +50,22 @@ export class AddSearchVectors1776200000000 implements MigrationInterface {
   public async down(queryRunner: QueryRunner): Promise<void> {
     // markets
     await queryRunner.query(`DROP INDEX IF EXISTS "IDX_markets_search_vector"`);
-    await queryRunner.query(`ALTER TABLE "markets" DROP COLUMN IF EXISTS "search_vector"`);
+    await queryRunner.query(
+      `ALTER TABLE "markets" DROP COLUMN IF EXISTS "search_vector"`,
+    );
 
     // users
     await queryRunner.query(`DROP INDEX IF EXISTS "IDX_users_search_vector"`);
-    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN IF EXISTS "search_vector"`);
+    await queryRunner.query(
+      `ALTER TABLE "users" DROP COLUMN IF EXISTS "search_vector"`,
+    );
 
     // competitions
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_competitions_search_vector"`);
-    await queryRunner.query(`ALTER TABLE "competitions" DROP COLUMN IF EXISTS "search_vector"`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "IDX_competitions_search_vector"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "competitions" DROP COLUMN IF EXISTS "search_vector"`,
+    );
   }
 }

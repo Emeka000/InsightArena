@@ -10,7 +10,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { ApiKeyGuard } from '../common/guards/api-key.guard';
+import { Scopes } from '../common/decorators/scopes.decorator';
+
 import { WebhooksService } from './services/webhooks.service';
+
 import { WebhookEndpoint } from './entities/webhook-endpoint.entity';
 import { WebhookDeliveryLog } from './entities/webhook-delivery-log.entity';
 import { CreateWebhookEndpointDto } from './dto/create-webhook-endpoint.dto';
@@ -19,11 +23,12 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
 
 @Controller('webhooks')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ApiKeyGuard)
 export class WebhooksController {
   constructor(private readonly webhooksService: WebhooksService) {}
 
   @Post('endpoints')
+  @Scopes('webhooks:write')
   async createEndpoint(
     @CurrentUser() user: User,
     @Body() dto: CreateWebhookEndpointDto,
@@ -32,11 +37,13 @@ export class WebhooksController {
   }
 
   @Get('endpoints')
+  @Scopes('webhooks:read')
   async listEndpoints(@CurrentUser() user: User): Promise<WebhookEndpoint[]> {
     return this.webhooksService.listEndpoints(user.id);
   }
 
   @Get('endpoints/:id')
+  @Scopes('webhooks:read')
   async getEndpoint(
     @CurrentUser() user: User,
     @Param('id') id: string,
@@ -45,6 +52,7 @@ export class WebhooksController {
   }
 
   @Patch('endpoints/:id')
+  @Scopes('webhooks:write')
   async updateEndpoint(
     @CurrentUser() user: User,
     @Param('id') id: string,
@@ -54,6 +62,7 @@ export class WebhooksController {
   }
 
   @Delete('endpoints/:id')
+  @Scopes('webhooks:write')
   async deleteEndpoint(
     @CurrentUser() user: User,
     @Param('id') id: string,
@@ -62,6 +71,7 @@ export class WebhooksController {
   }
 
   @Get('endpoints/:id/deliveries')
+  @Scopes('webhooks:read')
   async getDeliveryLogs(
     @CurrentUser() user: User,
     @Param('id') id: string,
