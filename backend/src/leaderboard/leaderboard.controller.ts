@@ -30,6 +30,14 @@ import { Public } from '../common/decorators/public.decorator';
 export class LeaderboardController {
   constructor(private readonly leaderboardService: LeaderboardService) {}
 
+  @Get('top/:n')
+  @Public()
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(60)
+  @ApiOperation({
+    summary: 'Get top N leaderboard entries for the active season',
+  })
+  @ApiQuery({ name: 'n', required: true, type: Number, description: 'Max 20' })
   async getTopLeaderboard(
     @Param('n', ParseIntPipe) n: number,
   ): Promise<LeaderboardEntryResponse[]> {
