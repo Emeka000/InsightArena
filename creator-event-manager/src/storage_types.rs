@@ -82,6 +82,15 @@ pub struct Match {
     /// Timestamp when the result was submitted (Unix timestamp in seconds)
     /// None = no result submitted yet, Some(timestamp) = when result was recorded
     pub result_timestamp: Option<u64>,
+
+    /// Points multiplier for this match (default 1). Applied to all point awards.
+    pub points_multiplier: u32,
+
+    /// Actual score for team A after the match concludes (used for exact-score grading)
+    pub actual_score_a: Option<u32>,
+
+    /// Actual score for team B after the match concludes (used for exact-score grading)
+    pub actual_score_b: Option<u32>,
 }
 
 impl Match {
@@ -112,6 +121,9 @@ impl Match {
             result_submitted: false,
             winning_team: None,
             result_timestamp: None,
+            points_multiplier: 1,
+            actual_score_a: None,
+            actual_score_b: None,
         }
     }
 
@@ -238,6 +250,25 @@ impl Match {
             }
         }
 
+        Ok(())
+    }
+
+    /// Record oracle result including actual scores for exact-score grading
+    pub fn set_oracle_result(
+        &mut self,
+        actual_result: u32,
+        score_a: u32,
+        score_b: u32,
+        timestamp: u64,
+    ) -> Result<(), &'static str> {
+        if self.result_submitted {
+            return Err("Result already submitted for this match");
+        }
+        self.winning_team = Some(actual_result);
+        self.actual_score_a = Some(score_a);
+        self.actual_score_b = Some(score_b);
+        self.result_timestamp = Some(timestamp);
+        self.result_submitted = true;
         Ok(())
     }
 
@@ -492,6 +523,101 @@ impl EventMetadata {
     /// Check if the event should be automatically resolved
     pub fn should_auto_resolve(&self, current_time: u64) -> bool {
         current_time >= self.resolution_time
+    }
+}
+
+/// A user's prediction for a single match, including the expected scoreline
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Prediction {
+    pub user: Address,
+    pub match_id: u64,
+    pub event_id: u64,
+    /// 0 = TeamA wins, 1 = TeamB wins, 2 = Draw
+    pub predicted_result: u32,
+    pub predicted_score_a: u32,
+    pub predicted_score_b: u32,
+}
+
+impl Prediction {
+    pub fn new(
+        user: Address,
+        match_id: u64,
+        event_id: u64,
+        predicted_result: u32,
+        predicted_score_a: u32,
+        predicted_score_b: u32,
+    ) -> Self {
+        Self {
+            user,
+            match_id,
+            event_id,
+            predicted_result,
+            predicted_score_a,
+            predicted_score_b,
+        }
+    }
+
+    /// Grade this prediction against actual results.
+    ///
+    /// Returns `base_points * points_multiplier` where base_points is:
+    /// - 300 for an exact-score match (correct result AND correct scoreline)
+    /// - 100 for a correct result with wrong scoreline
+    /// - 0 for a wrong result
+    pub fn grade(
+        &self,
+        actual_result: u32,
+        actual_score_a: u32,
+        actual_score_b: u32,
+        points_multiplier: u32,
+    ) -> i128 {
+        if self.predicted_result != actual_result {
+            return 0;
+        }
+        let is_exact = self.predicted_score_a == actual_score_a
+            && self.predicted_score_b == actual_score_b;
+        let base: i128 = if is_exact { 300 } else { 100 };
+        base * (points_multiplier as i128)
+    }
+}
+
+/// Oracle-style prediction event with an explicit, mutable prize pool
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OracleEvent {
+    pub event_id: u64,
+    pub creator: Address,
+    pub name: String,
+    pub description: String,
+    /// Running prize pool: starts as the creator-seeded amount, grows by entry_fee per join
+    pub prize_pool: i128,
+    /// Fee each participant pays to join (0 = free)
+    pub entry_fee: i128,
+    /// Unix timestamp after which no new joins or predictions are accepted
+    pub end_time: u64,
+    pub is_finalized: bool,
+}
+
+impl OracleEvent {
+    pub fn new(
+        event_id: u64,
+        creator: Address,
+        name: String,
+        description: String,
+        prize_pool: i128,
+        entry_fee: i128,
+        end_time: u64,
+    ) -> Self {
+        Self {
+            event_id,
+            creator,
+            name,
+            description,
+            prize_pool,
+            entry_fee,
+            end_time,
+            is_finalized: false,
+        }
     }
 }
 

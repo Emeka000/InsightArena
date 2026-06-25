@@ -4,9 +4,11 @@ use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String, Ve
 
 mod token;
 mod storage_types;
+mod finalize;
+mod views;
 
 use token::TokenHelper;
-use storage_types::{Event, EventMetadata, Match, MatchResult};
+use storage_types::{Event, EventMetadata, Match, MatchResult, OracleEvent, Prediction};
 
 /// Event status enumeration
 #[contracttype]
@@ -62,14 +64,20 @@ pub enum DataKey {
     EventCounter,
     Event(u64),
     EventMetadata(u64),
-    Match(u64), // match_id
-    EventMatches(u64), // event_id -> Vec<u64> (match_ids)
+    Match(u64),
+    EventMatches(u64),
     MatchCounter,
     UserPrediction(Address, u64),
     EventParticipants(u64),
     TokenAddress,
     Treasury,
     HouseFeePercentage,
+    // Oracle event keys
+    OracleEventCounter,
+    OracleEvent(u64),
+    OracleEventMatches(u64),
+    OracleEventParticipants(u64),
+    OraclePrediction(Address, u64),
 }
 
 /// Main contract structure
@@ -729,6 +737,230 @@ impl CreatorEventManagerContract {
             .expect("Match not found");
 
         match_obj.validate().is_ok()
+    }
+
+    // ─── Oracle event functions ───────────────────────────────────────────────
+
+    /// Create an oracle prediction event.
+    /// `prize_pool` XLM is immediately transferred from the creator to the contract as a seed.
+    /// Participants later add to the pool via `join_event`.
+    pub fn create_oracle_event(
+        env: Env,
+        creator: Address,
+        name: String,
+        description: String,
+        prize_pool: i128,
+        entry_fee: i128,
+        end_time: u64,
+    ) -> u64 {
+        creator.require_auth();
+
+        if prize_pool > 0 {
+            let token_address: Address = env.storage().instance()
+                .get(&DataKey::TokenAddress)
+                .expect("Token not set");
+            TokenHelper::collect_entry_fee(&env, &token_address, &creator, prize_pool)
+                .expect("Failed to seed prize pool");
+        }
+
+        let mut counter: u64 = env.storage().instance()
+            .get(&DataKey::OracleEventCounter)
+            .unwrap_or(0);
+        counter += 1;
+        env.storage().instance().set(&DataKey::OracleEventCounter, &counter);
+
+        let event = OracleEvent::new(counter, creator, name, description, prize_pool, entry_fee, end_time);
+        env.storage().persistent().set(&DataKey::OracleEvent(counter), &event);
+
+        counter
+    }
+
+    /// Join an oracle event, paying the entry fee into the prize pool.
+    /// A zero entry_fee event can be joined without any token transfer.
+    pub fn join_event(env: Env, user: Address, event_id: u64) {
+        user.require_auth();
+
+        let mut event: OracleEvent = env.storage().persistent()
+            .get(&DataKey::OracleEvent(event_id))
+            .expect("event_not_found");
+
+        assert!(!event.is_finalized, "Event is finalized");
+        assert!(env.ledger().timestamp() < event.end_time, "Event has ended");
+
+        if event.entry_fee > 0 {
+            let token_address: Address = env.storage().instance()
+                .get(&DataKey::TokenAddress)
+                .expect("Token not set");
+            TokenHelper::collect_entry_fee(&env, &token_address, &user, event.entry_fee)
+                .expect("Insufficient funds");
+            event.prize_pool += event.entry_fee;
+        }
+
+        let mut participants: Vec<Address> = env.storage().persistent()
+            .get(&DataKey::OracleEventParticipants(event_id))
+            .unwrap_or(Vec::new(&env));
+
+        if !participants.contains(&user) {
+            participants.push_back(user.clone());
+            env.storage().persistent()
+                .set(&DataKey::OracleEventParticipants(event_id), &participants);
+        }
+
+        env.storage().persistent().set(&DataKey::OracleEvent(event_id), &event);
+    }
+
+    /// Create a match within an oracle event, specifying a points multiplier.
+    pub fn create_oracle_match(
+        env: Env,
+        creator: Address,
+        event_id: u64,
+        team_a: String,
+        team_b: String,
+        match_time: u64,
+        points_multiplier: u32,
+    ) -> u64 {
+        creator.require_auth();
+
+        let event: OracleEvent = env.storage().persistent()
+            .get(&DataKey::OracleEvent(event_id))
+            .expect("event_not_found");
+        assert!(event.creator == creator, "Only creator can create matches");
+
+        let mut match_counter: u64 = env.storage().instance()
+            .get(&DataKey::MatchCounter)
+            .unwrap_or(0);
+        match_counter += 1;
+        env.storage().instance().set(&DataKey::MatchCounter, &match_counter);
+
+        let mut match_obj = Match::new(match_counter, event_id, team_a, team_b, match_time);
+        match_obj.points_multiplier = points_multiplier;
+        match_obj.validate().expect("Invalid match data");
+
+        env.storage().persistent().set(&DataKey::Match(match_counter), &match_obj);
+
+        let mut event_matches: Vec<u64> = env.storage().persistent()
+            .get(&DataKey::OracleEventMatches(event_id))
+            .unwrap_or(Vec::new(&env));
+        event_matches.push_back(match_counter);
+        env.storage().persistent().set(&DataKey::OracleEventMatches(event_id), &event_matches);
+
+        match_counter
+    }
+
+    /// Store a user's prediction for a match (predicted result + expected scoreline).
+    pub fn submit_prediction(
+        env: Env,
+        user: Address,
+        event_id: u64,
+        match_id: u64,
+        predicted_result: u32,
+        predicted_score_a: u32,
+        predicted_score_b: u32,
+    ) {
+        user.require_auth();
+
+        let participants: Vec<Address> = env.storage().persistent()
+            .get(&DataKey::OracleEventParticipants(event_id))
+            .unwrap_or(Vec::new(&env));
+        assert!(participants.contains(&user), "User is not a participant");
+
+        let match_obj: Match = env.storage().persistent()
+            .get(&DataKey::Match(match_id))
+            .expect("Match not found");
+        assert!(match_obj.event_id == event_id, "Match does not belong to this event");
+        assert!(!match_obj.result_submitted, "Match already has a result");
+
+        let prediction = Prediction::new(
+            user.clone(), match_id, event_id,
+            predicted_result, predicted_score_a, predicted_score_b,
+        );
+        env.storage().persistent()
+            .set(&DataKey::OraclePrediction(user, match_id), &prediction);
+    }
+
+    /// Submit the oracle result for a match, including the actual scoreline.
+    pub fn submit_oracle_result(
+        env: Env,
+        creator: Address,
+        match_id: u64,
+        actual_result: u32,
+        actual_score_a: u32,
+        actual_score_b: u32,
+    ) {
+        creator.require_auth();
+
+        let mut match_obj: Match = env.storage().persistent()
+            .get(&DataKey::Match(match_id))
+            .expect("Match not found");
+
+        let event: OracleEvent = env.storage().persistent()
+            .get(&DataKey::OracleEvent(match_obj.event_id))
+            .expect("event_not_found");
+        assert!(event.creator == creator, "Only creator can submit results");
+
+        let current_time = env.ledger().timestamp();
+        match_obj
+            .set_oracle_result(actual_result, actual_score_a, actual_score_b, current_time)
+            .expect("Failed to submit result");
+
+        env.storage().persistent().set(&DataKey::Match(match_id), &match_obj);
+    }
+
+    /// Sum a user's graded points across all matches in an oracle event.
+    pub fn get_user_score(env: Env, user: Address, event_id: u64) -> i128 {
+        let match_ids: Vec<u64> = env.storage().persistent()
+            .get(&DataKey::OracleEventMatches(event_id))
+            .unwrap_or(Vec::new(&env));
+
+        let mut total: i128 = 0;
+        for match_id in match_ids.iter() {
+            let match_option: Option<Match> = env.storage().persistent()
+                .get(&DataKey::Match(match_id));
+            if let Some(match_obj) = match_option {
+                if !match_obj.result_submitted {
+                    continue;
+                }
+                let actual_result = match match_obj.winning_team {
+                    Some(r) => r,
+                    None => continue,
+                };
+                let actual_score_a = match_obj.actual_score_a.unwrap_or(0);
+                let actual_score_b = match_obj.actual_score_b.unwrap_or(0);
+
+                let pred_option: Option<Prediction> = env.storage().persistent()
+                    .get(&DataKey::OraclePrediction(user.clone(), match_id));
+                if let Some(prediction) = pred_option {
+                    total += prediction.grade(
+                        actual_result,
+                        actual_score_a,
+                        actual_score_b,
+                        match_obj.points_multiplier,
+                    );
+                }
+            }
+        }
+        total
+    }
+
+    /// Finalize an oracle event by distributing the prize pool to the supplied winners list.
+    /// `winners` must be ordered highest-score-first (computed off-chain via `get_user_score`).
+    /// `reward_distribution` contains integer percentages that must sum to ≤ 100;
+    /// any remainder is returned to the creator.
+    pub fn finalize_event(
+        env: Env,
+        creator: Address,
+        event_id: u64,
+        winners: Vec<Address>,
+        reward_distribution: Vec<u32>,
+    ) {
+        creator.require_auth();
+        finalize::do_finalize(&env, &creator, event_id, &winners, &reward_distribution);
+    }
+
+    /// Return the current prize pool for an oracle event.
+    /// Panics with "event_not_found" for unknown event IDs.
+    pub fn get_event_prize_pool(env: Env, event_id: u64) -> i128 {
+        views::prize_pool(&env, event_id)
     }
 }
 

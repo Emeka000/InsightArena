@@ -374,6 +374,18 @@
                   "map": [
                     {
                       "key": {
+                        "symbol": "actual_score_a"
+                      },
+                      "val": "void"
+                    },
+                    {
+                      "key": {
+                        "symbol": "actual_score_b"
+                      },
+                      "val": "void"
+                    },
+                    {
+                      "key": {
                         "symbol": "event_id"
                       },
                       "val": {
@@ -394,6 +406,14 @@
                       },
                       "val": {
                         "u64": 3600
+                      }
+                    },
+                    {
+                      "key": {
+                        "symbol": "points_multiplier"
+                      },
+                      "val": {
+                        "u32": 1
                       }
                     },
                     {
